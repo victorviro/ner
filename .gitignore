@@ -3,3 +3,5 @@ src/venv/
 *.xlsx
 *.json
 *__pycache__
+models/ner/*
+!.gitkeep
