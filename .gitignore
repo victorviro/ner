@@ -1,0 +1,5 @@
+
+src/venv/
+*.xlsx
+*.json
+*__pycache__
