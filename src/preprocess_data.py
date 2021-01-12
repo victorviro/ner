@@ -1,13 +1,15 @@
 
 import pandas as pd
-
-from json_utils import get_json_from_file_path, save_json_file
-from constants import (CONCEPTS_FILE_PATH, MODIFIERS_FILE_PATH, 
-                       CORPUS_FILE_PATH, PREPROCESSED_DATA_PATH)
-from df_utils import (fill_null_rows_with_previous_value, remove_rows_with_null,
-                      remove_rows_overlapping_names, group_columns_by_row)
+from tqdm import tqdm
 from spacy.matcher import PhraseMatcher
 import es_core_news_sm
+
+from constants import (CONCEPTS_FILE_PATH, MODIFIERS_FILE_PATH, 
+                       CORPUS_FILE_PATH, PREPROCESSED_DATA_PATH)
+from utils import (get_json_from_file_path, save_json_file,
+                   fill_null_rows_with_previous_value, 
+                   remove_rows_with_null, group_columns_by_row)
+
 
 
 def process_data():
@@ -21,7 +23,7 @@ def process_data():
     # Remove rows with a null value in the column "Name"
     cleaned_df = remove_rows_with_null(filled_df, ['Name'])
     # Remove rows with an overlapping name
-    cleaned_df = remove_rows_overlapping_names(cleaned_df, 'Name')
+    cleaned_df = cleaned_df[cleaned_df['Name'].str.split().str.len().lt(2)]
     # Group the raw values of the column "Name" by the column "Concept"
     grouped_df = group_columns_by_row(cleaned_df, 'Concept', 'Name')
     # Convert the DataFrame to a dictionary

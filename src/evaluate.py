@@ -3,24 +3,26 @@ import random
 import spacy 
 from spacy.gold import GoldParse
 from spacy.scorer import Scorer
+from sklearn.model_selection import train_test_split
 
-from json_utils import get_json_from_file_path
+from utils import get_json_from_file_path
 from constants import (PREPROCESSED_DATA_PATH, OUTPUT_MODEL_PATH)
 
-
+# TODO move this function to utils.py (within all utils: df and json)
 def evaluate_model():
 
-    # Geberate the test data we use for training
+    # Generate the test data we use for training
     data_path = f'{PREPROCESSED_DATA_PATH}/training_data.json'
     data = get_json_from_file_path(data_path)[:1000]
-    random.seed(4)
-    random.shuffle(data)
-    examples_number = len(data)
-    num_training_examples = int(examples_number*0.7)
-    test_data = data[num_training_examples:]
+    train_data, test_data = train_test_split(data, train_size=0.7, 
+                                             random_state=4)
 
     # Load model
-    ner_model = spacy.load(OUTPUT_MODEL_PATH)
+    try:
+        ner_model = spacy.load(OUTPUT_MODEL_PATH)
+    except Exception as err:
+        msg = f'Could not load the model. Error: {err}'
+        raise Exception(msg)
 
     # Compute evaluation scores
     scores = evaluate(ner_model, test_data)
