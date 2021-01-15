@@ -7,22 +7,26 @@ from spacy.util import minibatch, compounding
 from sklearn.model_selection import train_test_split
 
 from utils import get_json_from_file_path
-from constants import (PREPROCESSED_DATA_PATH, ITERATIONS_NUMBER, 
+from constants import (PROCESSED_DATA_PATH, ITERATIONS_NUMBER, 
                        OUTPUT_MODEL_PATH)
 from evaluate import evaluate
 
 
 def train():
+    """ 
+    Load the processed data, train the NER model and save it.
+    """
 
-    data_path = f'{PREPROCESSED_DATA_PATH}/training_data.json'
-    data = get_json_from_file_path(data_path)[:1000]
+    # Get the processed data (in proper format to train the NER model) 
+    data = get_json_from_file_path(PROCESSED_DATA_PATH)
+    # Split the dataset for training and test
     train_data, test_data = train_test_split(data, train_size=0.7, 
                                              random_state=4)
     num_training_examples = len(train_data)
 
     # Create an empty Spanish model
     nlp = spacy.blank('es')  
-    print("Created blank 'en' model")
+    print("Created empty model")
     # Create the pipeline ner component and add them to the pipeline
     ner = nlp.create_pipe('ner')
     nlp.add_pipe(ner, last=True)
@@ -31,23 +35,23 @@ def train():
     for _, annotations in train_data:
         for ent in annotations.get('entities'):
             ner.add_label(ent[2])
-
     
-    # Train NER
+    # Train the NER model
     optimizer = nlp.begin_training()
     for itn in range(ITERATIONS_NUMBER):
+        # Shuggle the training data
         random.shuffle(train_data)
         losses = {}
         # Batch up the examples using spaCy's minibatch
+        # Increase the batchsize to help the model get started
         batches = minibatch(train_data, size=compounding(4.0, 32.0, 1.001))
 
         with tqdm(total=num_training_examples, leave=False) as pbar:
-            # for text, annotations in tqdm(train_data):
+            
             for batch in tqdm(batches):
                 texts, annotations = zip(*batch)
-                # Update the model: At each word, it makes a prediction, consults the 
-                # annotations. If it was wrong, it adjusts its weights so that the
-                # correct action will score higher next time.
+                # Update the model: It makes a prediction and if it was wrong, adjusts 
+                # its weights so that the correct action will score higher next time.
                 nlp.update(
                     texts,  
                     annotations,  
@@ -56,7 +60,7 @@ def train():
                     losses=losses)
                 pbar.update(len(texts))
             
-            # Scoreing in training and test data
+            # Scoring in the training and test data
             training_scores = evaluate(nlp, train_data)
             test_scores = evaluate(nlp, test_data)
             training_f_score = training_scores.get("ents_f")
@@ -66,10 +70,13 @@ def train():
 
 
     # Save the model to output directory
-    if OUTPUT_MODEL_PATH is not None:
+    if OUTPUT_MODEL_PATH:
         output_model_path = Path(OUTPUT_MODEL_PATH)
         # Create the directory if it does not exist
         if not output_model_path.exists():
             output_model_path.mkdir()
         nlp.to_disk(output_model_path)
         print(f'Saved model to {output_model_path}')
+
+if __name__ == "__main__":
+    train()
