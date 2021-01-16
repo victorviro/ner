@@ -2,6 +2,8 @@
 import pandas as pd
 from tqdm import tqdm
 from spacy.matcher import PhraseMatcher
+from spacy.util import filter_spans
+from spacy.tokens import Span
 import es_core_news_sm
 
 from constants import (CONCEPTS_FILE_PATH, MODIFIERS_FILE_PATH, 
@@ -11,48 +13,53 @@ from utils import (get_json_from_file_path, save_json_file,
                    remove_rows_with_null, group_columns_by_row)
 
 
+# Define a custom attribute on the spaCy Span object 
+Span.set_extension("label", default=None)
+
+
+
 def process_data():
     """
-    Prepare the datasets with the concepts and modifiers and generate 
-    and save the training data for the NER model by matching the 
-    search terms of the entities in the texts of the reviews.
+    Prepare the datasets with the concepts and modifiers, generate 
+    and save the data in proper format to train the NER model 
+    by matching the search terms of the entities in the texts
+    of the reviews.
     """
 
-    # Dataset of concepts
+    # Prepare the dataset of concepts
     # Load dataset in pandas DataFrame
     concepts_df = pd.read_excel(CONCEPTS_FILE_PATH, header=0)
     # Fill null values of column "Concept" with the previous value
     filled_df = fill_null_rows_with_previous_value(concepts_df, ['Concept'])
     # Remove rows with a null value in the column "Name"
     cleaned_df = remove_rows_with_null(filled_df, ['Name'])
-    # Remove rows with an overlapping name (see README for details)
-    cleaned_df = cleaned_df[cleaned_df['Name'].str.split().str.len().lt(2)]
     # Group the raw values of the column "Name" in a list by the column "Concept"
     grouped_df = group_columns_by_row(cleaned_df, 'Concept', 'Name')
     # Convert the DataFrame to a dictionary
-    concept_and_names = grouped_df.to_dict()
+    concepts_and_terms = grouped_df.to_dict()
 
-    # Dataset of modifiers 
+    # Prepare the dataset of modifiers 
     # Load dataset in pandas DataFrame
     modifiers_df = pd.read_excel(MODIFIERS_FILE_PATH, header=0)
     # Get lists with adjectives and advebrs 
     adjectives = set(modifiers_df['ADJETIVOS'].to_list())
     adverbs = set(modifiers_df['ADVERBIOS'].dropna().to_list())
-    # Get final list of modifiers (no overlapping modifiers, see README)
+    # Get final list of modifiers 
     modifiers = get_modifiers(adjectives, adverbs)
     modifiers_and_terms = {"modifier": modifiers}
 
     # Get a dict with all entities and their search terms
-    label_and_terms = dict(concept_and_names, **modifiers_and_terms)
+    label_and_terms = dict(concepts_and_terms, **modifiers_and_terms)
 
     # Get the list of texts of the reviews
     reviews = get_json_from_file_path(CORPUS_FILE_PATH)
+    print(f'Number of the reviews in the dataset: {len(reviews)}')
 
-    # Get the training data for the NER model
-    print('Generating the training data for the NER model by matching the '
+    # Get the data in proper format to train the NER model
+    print('Generating the data for the NER model by matching the '
           'search terms of the entities in the texts of the reviews...')
-    data = get_train_data(reviews, label_and_terms)
-    print('Training data generated')
+    data = get_data(reviews, label_and_terms)
+    print('Data in the proper format have been generated')
 
     # Save the data
     save_json_file(PROCESSED_DATA_PATH, data)
@@ -61,25 +68,26 @@ def process_data():
 
 def get_modifiers(adjectives, adverbs):
     """ 
-    Get final list of modifiers of the form: adverb+adjective.
-    No overlapping modifiers (see README).
+    Get final list of modifiers. Add adjectives and 
+    adverb+adjective.
     """
     terms = []
     for adjective in adjectives:
+        terms.append(adjective)
         for adverb in adverbs:
             term = f'{adverb} {adjective}' 
             terms.append(term)
 
     return terms
 
-def get_matches_in_train_format(text, label_and_terms, nlp):
+def get_matches_in_proper_format(text, label_and_terms, nlp):
     """
-    Match the terms of a entity/label in a text and return them in the 
-    format for train data. We use PhraseMatcher to find words or phrases
-    in texts based on patterns and rules.
+    Match the terms of an entity/label in a text and return them in the 
+    format for the NER model. We use PhraseMatcher to find words or phrases
+    in texts based on patterns.
     """
 
-    entities = []
+    matched_spans = [] 
     for label, terms in label_and_terms.items():
         # Initialize the PhraseMatcher with the vocabulary 
         matcher = PhraseMatcher(nlp.vocab, attr='LOWER')
@@ -91,37 +99,45 @@ def get_matches_in_train_format(text, label_and_terms, nlp):
         doc = nlp(text)
         # Find all sequences matching the supplied patterns on the Doc
         matches = matcher(doc)
-        # Loop over all matches
-        
+        # Get the spans matched
         for match_id, start, end in matches:
             span = doc[start:end]
-            # Get the info of the match needed for the format of train data
-            match_info_in_text = (span.start_char, span.end_char, label)
-            entities.append(match_info_in_text)
-
+            span._.label = label
+            matched_spans.append(span)
+            
+    # Remove overlaps. The (first) longest span is preferred over shorter spans
+    matched_spans_filtered = filter_spans(matched_spans)
+    entities = []
+    for span in matched_spans_filtered:
+        # Get the info of the match needed for the format of data
+        match_info_in_text = (span.start_char, span.end_char, span._.label)
+        entities.append(match_info_in_text)
     return entities
 
-def get_train_data(reviews, label_and_terms):
+def get_data(reviews, label_and_terms):
     """
-    Generate the training data for the NER model by matching the 
-    search terms of the entities in the texts of the reviews.
+    Generate the data in proper format to train the NER model by 
+    matching the search terms of the entities in the texts of 
+    the reviews.
     """
     # Load the spaCy statistical model
     nlp = es_core_news_sm.load()
     # Disable unnneeded pipeline components
     nlp.disable_pipes('ner', 'tagger', 'parser')
-    train_data = []
-
+    
+    data = []
     for review in tqdm(reviews):
-        # Match the terms of a entity in the text
-        matches_in_text = get_matches_in_train_format(review, label_and_terms, nlp)
+        # Match the terms of the entities in the text
+        matches_in_text = get_matches_in_proper_format(review, 
+                                                       label_and_terms, 
+                                                       nlp)
 
         matches_info_in_text = {"entities": matches_in_text}
         # Create a tuple with the text and the matches
-        review_row = (review, matches_info_in_text)
-        train_data.append(review_row)
+        data_row = (review, matches_info_in_text)
+        data.append(data_row)
 
-    return train_data
+    return data
 
 
 if __name__ == "__main__":
