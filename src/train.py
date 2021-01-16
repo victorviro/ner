@@ -34,13 +34,13 @@ def train():
 
     # Add labels
     for _, annotations in train_data:
-        for ent in annotations.get('entities'):
-            ner.add_label(ent[2])
+        for entities in annotations.get('entities'):
+            ner.add_label(entities[2])
     
     # Train the NER model
     print(f'Training the model for {ITERATIONS_NUMBER} epochs')
     optimizer = nlp.begin_training()
-    for itn in range(ITERATIONS_NUMBER):
+    for epoch in range(ITERATIONS_NUMBER):
         # Shuffle the training data
         random.shuffle(train_data)
         losses = {}
@@ -48,6 +48,7 @@ def train():
         # Increase the batchsize to help the model get started
         batches = minibatch(train_data, size=compounding(4.0, 32.0, 1.001))
 
+        # Use tqdm to show progress bar
         with tqdm(total=num_training_examples, leave=False) as pbar:
             
             for batch in tqdm(batches):
@@ -60,6 +61,7 @@ def train():
                     drop=0.5,  
                     sgd=optimizer,
                     losses=losses)
+                # Update the progress bar
                 pbar.update(len(texts))
             
             # Scoring in the training and test data

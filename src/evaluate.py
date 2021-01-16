@@ -5,7 +5,7 @@ from spacy.scorer import Scorer
 from sklearn.model_selection import train_test_split
 
 from utils import get_json_from_file_path
-from constants import (PROCESSED_DATA_PATH, OUTPUT_MODEL_PATH)
+from constants import PROCESSED_DATA_PATH, OUTPUT_MODEL_PATH
 
 
 def evaluate_model():
@@ -30,20 +30,23 @@ def evaluate_model():
     print('Computing metrics...')
     scores = evaluate(ner_model, test_data)
     # General metrics of the model
-    F_score = scores.get('ents_f')
+    f_score = scores.get('ents_f')
     precision = scores.get('ents_p')
     recall = scores.get('ents_r')
     print('\nScoring:')
-    print(f'F-score: {F_score}')
+    print(f'F-score: {f_score}')
     print(f'Precision: {precision}')
     print(f'Recall: {recall}')
 
     # Get the specific scores for each entity 
     scores_per_entity = scores.get('ents_per_type')
-    entity_f_scores = [ent_scores['f'] for ent_scores in scores_per_entity.values()]
+    # Get the F-score of the entities
+    f_scores_of_entities = []
+    for entity_scores in scores_per_entity.values():
+        f_scores_of_entities.append(entity_scores['f'])
     # Compute the macro averaged F-score
-    m_a_f_score = sum(entity_f_scores)/len(entity_f_scores)
-    print(f'Macro averaged F-score: {m_a_f_score}')
+    macro_avg_f_score = sum(f_scores_of_entities)/len(f_scores_of_entities)
+    print(f'Macro averaged F-score: {macro_avg_f_score}')
     
     print('\nScores per entity;')
     print('{:<15} {:<10} {:<10} {:<10}'.format('Entity','F-score','Precision','Recall'))
@@ -59,14 +62,13 @@ def evaluate(ner_model, examples):
     """
     # The Scorer computes and stores evaluation scores
     scorer = Scorer()
-    for input_, annot in examples:
+    for text, annotations in examples:
         # Process the text to get entities predicted
-        doc = ner_model.make_doc(input_)
-        
-        gold = GoldParse(doc, entities=annot['entities'])
-        pred_value = ner_model(input_)
-        # Update the evaluation scores from the doc
-        scorer.score(pred_value, gold)
+        document = ner_model.make_doc(text)
+        correct_annotations = GoldParse(document, entities=annotations['entities'])
+        predicted_annotations = ner_model(text)
+        # Update the evaluation scores from the document
+        scorer.score(predicted_annotations, correct_annotations)
     return scorer.scores
 
 if __name__ == '__main__':

@@ -102,6 +102,7 @@ def get_matches_in_proper_format(text, label_and_terms, nlp):
         # Get the spans matched
         for match_id, start, end in matches:
             span = doc[start:end]
+            # Update the custom attribute of the span to use it later
             span._.label = label
             matched_spans.append(span)
             
@@ -134,8 +135,8 @@ def get_data(reviews, label_and_terms):
 
         matches_info_in_text = {"entities": matches_in_text}
         # Create a tuple with the text and the matches
-        data_row = (review, matches_info_in_text)
-        data.append(data_row)
+        row_data = (review, matches_info_in_text)
+        data.append(row_data)
 
     return data
 

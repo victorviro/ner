@@ -30,13 +30,23 @@ def test_model():
     # Show some predictions done by the model
     print(f'\nShowing predictions of {PREDICTIONS_NUMBER} random reviews of the'
            ' test dataset:')
+           
     for i in random.choices(range(len(test_data)), k=PREDICTIONS_NUMBER): 
+
         text, annotations = test_data[i]
+        # Get the Doc from the text of the review
+        document = ner_model(text)
+
+        # Get the entities predicted
+        entities_predicted = []
+        for entity_predicted in document.ents:
+            # Get the positions in the sentence, the name of the entity and the text
+            entity_predicted_info = (entity_predicted.start_char, entity_predicted.end_char, 
+                                     entity_predicted.label_, entity_predicted.text)
+            entities_predicted.append(entity_predicted_info)
+
         print(f'\nText of the review: {text}')
         print(f'Ground truth entities: {annotations["entities"]}')
-        doc = ner_model(text)
-        entities_predicted = [(ent.start_char, ent.end_char, ent.label_, ent.text) 
-                              for ent in doc.ents]
         print(f'Entities predicted by the model: {entities_predicted}')
 
 if __name__ == '__main__':
