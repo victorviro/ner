@@ -23,6 +23,7 @@ def train():
     train_data, test_data = train_test_split(data, train_size=0.7, 
                                              random_state=4)
     num_training_examples = len(train_data)
+    print(f'Number of examples in training data: {num_training_examples}')
 
     # Create an empty Spanish model
     nlp = spacy.blank('es')  
@@ -37,9 +38,10 @@ def train():
             ner.add_label(ent[2])
     
     # Train the NER model
+    print(f'Training the model for {ITERATIONS_NUMBER} epochs')
     optimizer = nlp.begin_training()
     for itn in range(ITERATIONS_NUMBER):
-        # Shuggle the training data
+        # Shuffle the training data
         random.shuffle(train_data)
         losses = {}
         # Batch up the examples using spaCy's minibatch
@@ -65,11 +67,11 @@ def train():
             test_scores = evaluate(nlp, test_data)
             training_f_score = training_scores.get("ents_f")
             test_f_score = test_scores.get("ents_f")
-            print(f'Loss: {losses.get("ner")}')
+            print(f'Training loss: {losses.get("ner")}')
             print(f'Training F-score: {training_f_score}; Test F-score: {test_f_score}')
 
 
-    # Save the model to output directory
+    # Save the model
     if OUTPUT_MODEL_PATH:
         output_model_path = Path(OUTPUT_MODEL_PATH)
         # Create the directory if it does not exist

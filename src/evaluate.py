@@ -1,4 +1,3 @@
-import random
 
 import spacy 
 from spacy.gold import GoldParse
@@ -9,9 +8,9 @@ from utils import get_json_from_file_path
 from constants import (PROCESSED_DATA_PATH, OUTPUT_MODEL_PATH)
 
 
-def evaluate_and_test_model():
+def evaluate_model():
     """ 
-    Evaluate and test the NER model in the test data.
+    Load the NER model and evaluate it in the test data.
     """
 
     # Get the processed data (in proper format to evaluate the NER model)
@@ -28,6 +27,7 @@ def evaluate_and_test_model():
         raise Exception(msg)
 
     # Compute evaluation scores
+    print('Computing metrics...')
     scores = evaluate(ner_model, test_data)
     # General metrics of the model
     F_score = scores.get('ents_f')
@@ -51,18 +51,6 @@ def evaluate_and_test_model():
         entity = key
         f, p, r = value['f'], value['p'], value['r']
         print('{:<15} {:<10.2f} {:<10.2f} {:<10.2f}'.format(entity, f, p, r))
-    
-
-    # Show some predictions done by the model
-    print('\nShow some predictions in the test dataset:')
-    for i in random.choices(range(len(test_data)), k=4): 
-        text, annotations = test_data[i]
-        print(f'\nText of the review: {text}')
-        print(f'Ground truth entities: {annotations["entities"]}')
-        doc = ner_model(text)
-        entities_predicted = [(ent.start_char, ent.end_char, ent.label_, ent.text) 
-                              for ent in doc.ents]
-        print(f'Entities predicted by the model: {entities_predicted}')
 
 
 def evaluate(ner_model, examples):
@@ -82,4 +70,4 @@ def evaluate(ner_model, examples):
     return scorer.scores
 
 if __name__ == '__main__':
-    evaluate_and_test_model()
+    evaluate_model()
