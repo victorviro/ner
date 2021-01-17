@@ -92,10 +92,10 @@ def get_matches_in_proper_format(text, label_and_terms, nlp):
         # Initialize the PhraseMatcher with the vocabulary 
         matcher = PhraseMatcher(nlp.vocab, attr='LOWER')
         terms = set(terms)
-        # Add the rule/pattern to the matcher
+        # Add the pattern to the matcher
         patterns = [nlp.make_doc(text) for text in terms]
         matcher.add("TerminologyList", patterns)
-        # Process the text
+        # Get the Doc from the text
         doc = nlp(text)
         # Find all sequences matching the supplied patterns on the Doc
         matches = matcher(doc)
