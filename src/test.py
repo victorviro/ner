@@ -30,7 +30,7 @@ def test_model():
     print(f'\nShowing predictions of {PREDICTIONS_NUMBER} random reviews of the'
            ' test dataset:')
            
-    for text, annotations in random.choices(test_data, k=PREDICTIONS_NUMBER):
+    for text, annotations in random.sample(test_data, k=PREDICTIONS_NUMBER):
 
         # Get the Doc from the text of the review
         document = ner_model(text)
