@@ -18,10 +18,11 @@ wget https://bitbucket.org/delectateam/nlptrainingexam/raw/aa9ea86fa4795ef2bcba2
 wget https://bitbucket.org/delectateam/nlptrainingexam/raw/aa9ea86fa4795ef2bcba2af622add9a8e69c6621/resources/ner/ner_corpus.json -P data/raw
 ```
 
-Create virtual environment via venv or conda e install requirements.
+Create virtual environment, and install requirements.
 ```shell
 cd src
-# Create virtual env
+python3 -m virtualenv venv
+source venv/bin/activate
 pip install -r requirements.txt
 ```
 
