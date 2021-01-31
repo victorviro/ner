@@ -1,7 +1,7 @@
 # Train a NER model
 
 ## Description
-In this repository, we train a **Name Entity Recognition (NER)** model with new entities in a corpus of sentences from restaurant reviews. 
+In this repository, we train a **Name Entity Recognition (NER)** model with new entities in a corpus of sentences from restaurant reviews. We use the python library [spaCy](https://spacy.io/). A description of the NER task, and a summary of different approaches to train sequence labeling tasks, is available [here](https://nbviewer.jupyter.org/github/victorviro/Deep_learning_python/blob/master/Deep_learning_methods_for_sequence_labeling_NLP.ipynb). A video explaining how the NER system from spaCy works, is available [here](https://youtu.be/sqDHBH9IjRU).
 
 ## Steps
 - First, we prepare the data in the proper format to train the NER model in spaCy (by matching the search terms of the new entities in the texts of the reviews). 
@@ -27,25 +27,27 @@ pip install -r requirements.txt
 ```
 
 ## Data preparation
-Preprocess the data (in the proper format to train the NER model). The data processed will be stored in the directory `data/processed`.
+Preprocess the data in the proper format to train the NER model. The data processed will be stored in the directory `data/processed`. This process only take a couple of minutes.
 ```shell
 python src/preprocess_data.py
 ```
 
 ## Training
-Train the NER model for 5 epochs (the number of epochs can be modified in the file `constants.py`). The model will be stored in the directory `model/ner`.
+Train the NER model for 5 epochs (the number of epochs can be modified in the file `constants.py`). The model will be stored in the directory `model/ner`. This process takes a few minutes.
 ```shell
 python src/train.py
 ```
 
 ## Evaluation
-Evaluate the model in the test data computing some metrics of the model. A description of the metrics used as well as an introduction to NER models is available [here](https://gist.github.com/victorviro/a70622009864e55a27c4f6d85413ea89).
+Evaluate the model in the test data computing some metrics of the model.
 ```shell
 python src/evaluate.py
 ```
 
+Training the model for 5 epochs, it gets a F1-score of `0.99`, and a macro-averaged F1-score of `0.99`.
+
 ## Test
-Show model predicions of some random reviews in the test data. The number of predicitions to show can be modified in the file `constants.py`.
+Show model predictions of some random reviews in the test data. The number of predictions to show can be modified in the file `constants.py`.
 
 ```shell
 python src/test.py
